@@ -1,0 +1,271 @@
+REM CreateCompanyDatabase.sql
+REM Script to create the Company database to 
+REM accompany Bordoloi/Bock -- An Introduction to SQL
+
+REM First drop necessary constraints and tables that 
+REM might already exist in order to create a clean database.
+
+-- ---------------------------DROP TABLE----------------------------
+
+ALTER TABLE department
+    DROP CONSTRAINT fk_dept_emp;
+DROP TABLE dependent;
+DROP TABLE assignment;
+DROP TABLE employee;
+DROP table equipment;
+DROP TABLE project;
+DROP table dept_locations;
+DROP table department;
+
+-- ----------------------------CREATE TABLE------------------
+REM Create tables
+
+REM Create department table
+CREATE TABLE department (
+    dpt_no                    NUMBER(2)
+        CONSTRAINT pk_department PRIMARY KEY,
+    dpt_name                  VARCHAR2(20)
+        CONSTRAINT nn_dpt_name NOT NULL,
+    dpt_mgrssn                CHAR(9),
+    dpt_mgr_start_date        DATE
+);
+
+REM Create dept_locations table  
+CREATE TABLE dept_locations (
+    dpt_no                    NUMBER(2),
+    dpt_location              VARCHAR2(20),
+CONSTRAINT pk_dept_locations 
+    PRIMARY KEY ( dpt_no, dpt_location ),
+CONSTRAINT fk_dept_loc_no 
+    FOREIGN KEY (dpt_no) REFERENCES department
+) ;
+  
+REM Create project table
+CREATE TABLE project (
+    pro_number                NUMBER(2)
+        CONSTRAINT pk_project PRIMARY KEY,
+    pro_name                  VARCHAR2(25) 
+        CONSTRAINT nn_pro_name NOT NULL,
+    pro_location              VARCHAR2(25),
+    pro_dept_number           NUMBER(2),
+CONSTRAINT fk_pro_dept_number FOREIGN KEY (pro_dept_number)
+    REFERENCES department
+);
+
+REM Create employee table 
+CREATE TABLE employee (
+    emp_ssn                   CHAR(9)
+        CONSTRAINT pk_employee PRIMARY KEY,
+    emp_last_name             VARCHAR2(25)
+        CONSTRAINT nn_emp_last_name NOT NULL,
+    emp_first_name            VARCHAR2(25)
+        CONSTRAINT nn_emp_first_name NOT NULL,
+    emp_middle_name           VARCHAR2(25),
+    emp_address               VARCHAR2(50),
+    emp_city                  VARCHAR2(25),
+    emp_state                 CHAR(2),
+    emp_zip                   CHAR(9),
+    emp_date_of_birth         DATE,
+    emp_salary                NUMBER(7,2)
+        CONSTRAINT ck_emp_salary 
+            CHECK (emp_salary <= 85000),
+    emp_parking_space         NUMBER(4)
+        CONSTRAINT un_emp_parking_space UNIQUE,
+    emp_gender                CHAR(1),
+    emp_dpt_number            NUMBER(2),
+    emp_superssn              CHAR(9),
+CONSTRAINT fk_emp_dpt FOREIGN KEY (emp_dpt_number)
+    REFERENCES department
+        ON DELETE SET NULL,
+CONSTRAINT fk_emp_superssn FOREIGN KEY (emp_superssn)
+    REFERENCES employee
+	ON DELETE SET NULL
+) ;
+  
+REM Create assignment table
+CREATE TABLE assignment (
+    work_emp_ssn              CHAR(9),
+    work_pro_number           NUMBER(2),
+    work_hours                NUMBER(5,1),
+CONSTRAINT pk_assignment 
+    PRIMARY KEY ( work_emp_ssn, work_pro_number ),
+CONSTRAINT fk_work_emp 
+    FOREIGN KEY (work_emp_ssn) REFERENCES employee
+        ON DELETE CASCADE,
+CONSTRAINT fk_work_pro_number
+    FOREIGN KEY (work_pro_number) REFERENCES project
+        ON DELETE CASCADE
+) ;
+  
+REM Create dependent table
+CREATE TABLE dependent (
+    dep_emp_ssn               CHAR(9),
+    dep_name                  VARCHAR2(50),
+    dep_gender                CHAR(1),
+    dep_date_of_birth         DATE,
+    dep_relationship          VARCHAR2(10),
+CONSTRAINT pk_dependent PRIMARY KEY (dep_emp_ssn, dep_name),
+CONSTRAINT fk_dep_emp_ssn 
+    FOREIGN KEY (dep_emp_ssn) REFERENCES employee
+        ON DELETE CASCADE
+) ;
+
+REM Create equipment table 
+CREATE TABLE equipment (
+    eqp_no               	CHAR(4)
+CONSTRAINT pk_equipment PRIMARY KEY,
+    eqp_description           VARCHAR2(15),
+    eqp_value 			NUMBER(10,2),
+    eqp_quantity_on_hand      NUMBER(3),
+    eqp_pro_number	      NUMBER(2),
+CONSTRAINT fk_eqp_pro_number
+	FOREIGN KEY (eqp_pro_number) REFERENCES project
+	ON DELETE CASCADE
+);
+
+REM Add FOREIGN KEY constraint between the department 
+REM and employee tables.
+ALTER TABLE department ADD CONSTRAINT fk_dept_emp 
+    FOREIGN KEY (dpt_mgrssn) 
+        REFERENCES employee (emp_ssn);
+
+-- --------------------------------------------INSERT TABLE---------------------------
+
+
+REM POPULATE TABLES
+
+REM Department rows.  Department manager SSN 
+REM  and date_mgr_startdate are null.
+INSERT INTO department VALUES ( 7, 'Production', NULL, NULL );
+INSERT INTO department VALUES ( 3, 'Admin and Records', NULL, 
+    NULL );
+INSERT INTO department VALUES ( 1, 'Headquarters', NULL, NULL );
+
+REM Dept_locations rows.  
+INSERT INTO dept_locations VALUES ( 1, 'Edwardsville');
+INSERT INTO dept_locations VALUES ( 3, 'Marina');
+INSERT INTO dept_locations VALUES ( 7, 'St. Louis');
+INSERT INTO dept_locations VALUES ( 7, 'Collinsville');
+INSERT INTO dept_locations VALUES ( 7, 'Edwardsville');
+COMMIT;
+
+REM Project rows.
+INSERT INTO project VALUES ( 1, 'Order Entry', 'St. Louis', 7 );
+INSERT INTO project VALUES ( 2, 'Payroll', 'Collinsville', 7 );
+INSERT INTO project VALUES ( 3, 'Receivables', 'Edwardsville', 7 );
+INSERT INTO project VALUES ( 10, 'Inventory', 'Marina', 3 );
+INSERT INTO project VALUES ( 20, 'Personnel', 'Edwardsville', 1 );
+INSERT INTO project VALUES ( 30, 'Pay Benefits', 'Marina', 3 );
+COMMIT;
+
+REM Employee rows.
+INSERT INTO employee VALUES( '999666666', 'Bordoloi', 'Bijoy', 
+    NULL, 'South Main #12', 'Edwardsville', 'IL', 62025, 
+    TO_DATE('11-10-1967', 'MM-DD-YYYY'), 55000, 1, 'M', 1, NULL ); 
+INSERT INTO employee VALUES( '999555555', 'Joyner', 'Suzanne', 
+    'A', '202 Burns Farm', 'Marina', 'CA', 93941, 
+    TO_DATE('06-20-1971', 'MM-DD-YYYY'), 43000, 3, 'F', 
+    3, '999666666' ); 
+INSERT INTO employee VALUES( '999444444', 'Zhu', 'Waiman',
+    'Z', '303 Lindbergh', 'St. Louis', 'MO', 63121, 
+    TO_DATE('12-08-1975', 'MM-DD-YYYY'), 43000, 32, 'M', 
+    7, '999666666' ); 
+INSERT INTO employee VALUES( '999887777', 'Markis', 'Marcia',
+    'M', 'High St. #14', 'Monterey', 'CA', 93940, 
+    TO_DATE('07-19-1978', 'MM-DD-YYYY'), 25000, 402, 'F', 
+    3, '999555555' ); 
+INSERT INTO employee VALUES( '999222222', 'Amin', 'Hyder', 
+    NULL, 'S. Seaside Apt. B', 'Marina', 'CA', 93941, 
+    TO_DATE('03-29-1969', 'MM-DD-YYYY'), 25000, 422, 'M', 
+    3, '999555555' ); 
+INSERT INTO employee VALUES( '999111111', 'Bock', 'Douglas', 
+    'B', '#2 Mont Verd Dr.', 'St. Louis', 'MO', 63121, 
+    TO_DATE('09-01-1955', 'MM-DD-YYYY'), 30000, 542, 'M', 
+    7, '999444444' ); 
+INSERT INTO employee VALUES( '999333333', 'Joshi', 'Dinesh',
+    NULL, '#10 Oak St.', 'Collinsville', 'IL', 66234,
+    TO_DATE('09-15-1972', 'MM-DD-YYYY'), 38000, 332, 'M', 
+    7, '999444444' ); 
+INSERT INTO employee VALUES( '999888888', 'Prescott', 'Sherri',
+    'C', 'Overton Way #4', 'Edwardsville', 'IL', 62025, 
+    TO_DATE('07-31-1972', 'MM-DD-YYYY'), 25000, 296, 'F', 
+    7, '999444444' ); 
+COMMIT;
+
+REM Assignment rows.
+INSERT INTO assignment VALUES ( '999111111', 1, 31.4);
+INSERT INTO assignment VALUES ( '999111111', 2, 8.5);
+INSERT INTO assignment VALUES ( '999333333', 3, 42.1);
+INSERT INTO assignment VALUES ( '999888888', 1, 21.0);
+INSERT INTO assignment VALUES ( '999888888', 2, 22.0);
+INSERT INTO assignment VALUES ( '999444444', 2, 12.2);
+INSERT INTO assignment VALUES ( '999444444', 3, 10.5);
+INSERT INTO assignment VALUES ( '999444444', 1, NULL);
+INSERT INTO assignment VALUES ( '999444444', 10, 10.1);
+INSERT INTO assignment VALUES ( '999444444', 20, 11.8);
+INSERT INTO assignment VALUES ( '999887777', 30, 30.8);
+INSERT INTO assignment VALUES ( '999887777', 10, 10.2);
+INSERT INTO assignment VALUES ( '999222222', 10, 34.5);
+INSERT INTO assignment VALUES ( '999222222', 30, 5.1);
+INSERT INTO assignment VALUES ( '999555555', 30, 19.2);
+INSERT INTO assignment VALUES ( '999555555', 20, 14.8);
+INSERT INTO assignment VALUES ( '999666666', 20, NULL);
+COMMIT;
+
+REM Dependent rows.
+INSERT INTO dependent VALUES ( '999444444', 'Jo Ellen', 'F', 
+    TO_DATE('04-05-1996', 'MM-DD-YYYY'), 'DAUGHTER');
+INSERT INTO dependent VALUES ( '999444444', 'Andrew', 'M', 
+    TO_DATE('10-25-1998', 'MM-DD-YYYY'), 'SON');
+INSERT INTO dependent VALUES ( '999444444', 'Susan', 'F', 
+    TO_DATE('05-03-1975', 'MM-DD-YYYY'), 'SPOUSE');
+INSERT INTO dependent VALUES ( '999555555', 'Allen', 'M', 
+    TO_DATE('02-29-1968', 'MM-DD-YYYY'), 'SPOUSE');
+INSERT INTO dependent VALUES ( '999111111', 'Jeffery', 'M', 
+    TO_DATE('01-01-1978', 'MM-DD-YYYY'), 'SON');
+INSERT INTO dependent VALUES ( '999111111', 'Deanna', 'F', 
+    TO_DATE('12-31-1978', 'MM-DD-YYYY'), 'DAUGHTER');
+INSERT INTO dependent VALUES ( '999111111', 'Mary Ellen', 'F', 
+    TO_DATE('05-05-1957', 'MM-DD-YYYY'), 'SPOUSE');
+COMMIT;
+
+REM Equipment rows
+INSERT INTO equipment VALUES ('4321', 'Computer, PC', 1100, 2, 3 );
+INSERT INTO equipment VALUES ('2323', 'Table, mobile', 245.5, 3, 2 );
+INSERT INTO equipment VALUES ('6987', 'Computer, PC', 849.5, 2, 1 );
+INSERT INTO equipment VALUES ('1234', 'Chair, mobile', 78.25, 4, 2 );
+INSERT INTO equipment VALUES ('5678', 'Printer', 172, 2, 30 );
+INSERT INTO equipment VALUES ('9876', 'Computer, Ntpad', 1400.23, 2, 30 );
+COMMIT;
+
+-- ----------------------------------------------------------------UPDATE -----------------------------------------
+
+REM Update department rows to add manager ssn and start date.
+UPDATE department SET dpt_mgrssn = '999444444', 
+    dpt_mgr_start_date = TO_DATE('05-22-1998', 'MM-DD-YYYY')
+    WHERE dpt_no = '7';       
+UPDATE department SET dpt_mgrssn = '999555555',
+    dpt_mgr_start_date = TO_DATE('01-01-2001', 'MM-DD-YYYY')
+    WHERE dpt_no = '3';       
+UPDATE department SET dpt_mgrssn = '999666666',
+    dpt_mgr_start_date = TO_DATE('06-19-1981', 'MM-DD-YYYY')
+    WHERE dpt_no = '1'; 
+COMMIT;
+
+-- ----------------------------------------------------------------SELECT -----------------------------------------
+
+
+REM Count table rows to ensure the script executed properly.
+SELECT COUNT(*) "Department Count Is 3" FROM department;
+SELECT COUNT(*) "Dept Locations Count Is 5" FROM dept_locations;
+SELECT COUNT(*) "Project Count Is 6" FROM project;
+SELECT COUNT(*) "Employee Count IS 8" FROM employee;
+SELECT COUNT(*) "Assignment Count Is 17" FROM assignment;
+SELECT COUNT(*) "Dependent Count IS 7" FROM dependent;
+SELECT COUNT(*) "Equipment Count IS 6" FROM equipment;
+
+REM for chapter PL/SQL
+REM ALTER TABLE employee ADD emp_bonus NUMBER(7,2);
+
+REM End of Script      
+
